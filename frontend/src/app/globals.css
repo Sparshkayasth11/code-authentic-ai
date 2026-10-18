@@ -1,0 +1,129 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 8mm;
+  }
+
+  *,
+  *::before,
+  *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  html,
+  body {
+    width: 100%;
+    min-height: 0;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #0a0a0a !important;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  #audit-report,
+  #audit-report * {
+    visibility: visible !important;
+  }
+
+  .print-page {
+    min-height: 0 !important;
+    padding: 0 !important;
+    background: #0a0a0a !important;
+  }
+
+  .print-content,
+  .print-report-wrapper {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    gap: 0 !important;
+  }
+
+  #audit-report {
+    position: static !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 1px solid #262626 !important;
+    border-radius: 0 !important;
+    background: #171717 !important;
+    color: #fff !important;
+    box-shadow: none !important;
+    font-size: 12px !important;
+    line-height: 1.4 !important;
+  }
+
+  #audit-report > :not(:last-child) {
+    margin-block: 0 10px !important;
+  }
+
+  #audit-report .print-card {
+    box-sizing: border-box !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    margin-bottom: 10px !important;
+    padding: 10px 14px !important;
+    background-color: #171717 !important;
+    border-color: #262626 !important;
+    box-shadow: none !important;
+    line-height: 1.4 !important;
+  }
+
+  #audit-report .print-card [class*="space-y-"] > :not(:last-child) {
+    margin-block: 0 5px !important;
+  }
+
+  #audit-report,
+  #audit-report > div,
+  #audit-report .print-card,
+  #audit-report .print-card > div {
+    border-color: #262626 !important;
+  }
+
+  #audit-report h2,
+  #audit-report h3,
+  #audit-report h4,
+  #audit-report h5,
+  #audit-report p,
+  #audit-report li,
+  #audit-report span {
+    line-height: 1.4 !important;
+  }
+
+  #audit-report button {
+    display: none !important;
+  }
+}
