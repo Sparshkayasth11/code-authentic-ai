@@ -1,4 +1,5 @@
 from typing import List
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -8,8 +9,8 @@ app = FastAPI(title="CodeAuthentic AI API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=["https://code-authentic-ai.vercel.app", "*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -26,24 +27,24 @@ def root():
 
 @app.post("/api/inspect")
 def inspect_project(payload: InspectRequest):
-    if not payload.url:
+    url = payload.url.strip()
+    if not url:
         raise HTTPException(status_code=400, detail="URL is required")
-    
-    result = analyze_url(payload.url)
+
+    result = analyze_url(url)
     if "error" in result:
         raise HTTPException(status_code=400, detail=result["error"])
-        
+
     return result
 
 @app.post("/api/bulk-inspect")
 def bulk_inspect_projects(payload: BulkInspectRequest):
-    if not payload.urls:
+    urls = [url.strip() for url in payload.urls if url.strip()]
+    if not urls:
         raise HTTPException(status_code=400, detail="URL list is required")
-    
+
     results = []
-    for url in payload.urls:
-        if url.strip():
-            res = analyze_url(url.strip())
-            results.append(res)
-            
+    for url in urls:
+        results.append(analyze_url(url))
+
     return {"batch_results": results}
