@@ -51,7 +51,7 @@ export default function Home() {
     try {
       if (mode === "single") {
         if (!url) return;
-        const res = await fetch("http://127.0.0.1:8000/api/inspect", {
+        const res = await fetch("https://code-authentic-ai.onrender.com/api/inspect", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ url }),
@@ -64,7 +64,7 @@ export default function Home() {
         const urlList = bulkUrls.split("\n").map(u => u.trim()).filter(u => u.length > 0);
         if (urlList.length === 0) throw new Error("Please enter at least one URL.");
 
-        const res = await fetch("http://127.0.0.1:8000/api/bulk-inspect", {
+        const res = await fetch("https://code-authentic-ai.onrender.com/api/bulk-inspect", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ urls: urlList }),
