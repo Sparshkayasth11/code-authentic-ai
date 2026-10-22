@@ -16,6 +16,15 @@ interface ProjectSummary {
   key_features: string[];
 }
 
+interface SlideContent {
+  slideNumber: number;
+  title: string;
+  subtitle?: string;
+  bullets: string[];
+  suggestedVisual: string;
+  badgeText?: string;
+}
+
 interface InspectionResult {
   type: string;
   url: string;
@@ -31,14 +40,16 @@ interface InspectionResult {
 }
 
 export default function Home() {
-  const [mode, setMode] = useState<"single" | "teacher">("single");
+  const [mode, setMode] = useState<"single" | "teacher" | "ppt">("single");
   const [url, setUrl] = useState("");
   const [bulkUrls, setBulkUrls] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<InspectionResult | null>(null);
   const [batchResults, setBatchResults] = useState<InspectionResult[]>([]);
+  const [pptSlides, setPptSlides] = useState<SlideContent[] | null>(null);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [copiedSlideIndex, setCopiedSlideIndex] = useState<number | null>(null);
 
   const handleInspect = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,6 +57,7 @@ export default function Home() {
     setError("");
     setResult(null);
     setBatchResults([]);
+    setPptSlides(null);
     setCopied(false);
 
     try {
@@ -60,7 +72,7 @@ export default function Home() {
         if (!res.ok) throw new Error("Failed to inspect URL.");
         const data = await res.json();
         setResult(data);
-      } else {
+      } else if (mode === "teacher") {
         const urlList = bulkUrls.split("\n").map(u => u.trim()).filter(u => u.length > 0);
         if (urlList.length === 0) throw new Error("Please enter at least one URL.");
 
@@ -73,6 +85,116 @@ export default function Home() {
         if (!res.ok) throw new Error("Failed to process batch inspection.");
         const data = await res.json();
         setBatchResults(data.batch_results || []);
+      } else if (mode === "ppt") {
+        if (!url) return;
+        const res = await fetch("https://code-authentic-ai.onrender.com/api/inspect", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url }),
+        });
+
+        if (!res.ok) throw new Error("Failed to inspect URL for PPT generation.");
+        const data: InspectionResult = await res.json();
+        setResult(data);
+
+        const projTitle = data.project_summary?.title || url.replace("https://", "").replace("http://", "").split("/")[0] || "Project";
+        const generatedSlides: SlideContent[] = [
+          {
+            slideNumber: 1,
+            title: projTitle,
+            subtitle: "Next-Generation Intelligent AI Platform",
+            badgeText: "Title Slide",
+            bullets: [
+              `Project Name: ${projTitle}`,
+              `Core Purpose: ${data.project_summary?.purpose || "AI-driven project execution & code inspection."}`,
+              "Department: Computer Science / Engineering / AI & DS",
+              "Presented By: Student / Development Team Lead"
+            ],
+            suggestedVisual: "Main Project Banner with high-contrast theme & logo."
+          },
+          {
+            slideNumber: 2,
+            title: "Problem Statement",
+            badgeText: "Background & Need",
+            bullets: data.insights.length > 0 ? data.insights.slice(0, 4) : [
+              "Manual project inspection and evaluation is extremely time-consuming.",
+              "Identifying AI-generated boilerplate code requires automated checks.",
+              "Lack of real-time architectural insights and presentation tools."
+            ],
+            suggestedVisual: "Screenshot placeholder of key user pain-point interface."
+          },
+          {
+            slideNumber: 3,
+            title: "Objectives & Target Audience",
+            badgeText: "Goals",
+            bullets: [
+              `Target Audience: ${data.project_summary?.target_audience || "Developers, Students, & Academic Evaluators"}`,
+              "Automate technical project validation & score reporting.",
+              "Provide transparent code authenticity and AI ratio breakdown.",
+              "Streamline presentation creation directly from code repositories."
+            ],
+            suggestedVisual: "Grid layout highlighting Accuracy, Efficiency, and Speed."
+          },
+          {
+            slideNumber: 4,
+            title: "Purposed Solution & Modules",
+            badgeText: "Features",
+            bullets: data.project_summary?.key_features || [
+              "Live Web URL & GitHub Repo Inspection",
+              "Teacher/Evaluator Viva Question Generation",
+              "Automated Presentation Content Generator"
+            ],
+            suggestedVisual: "Two-column feature list comparing User vs Admin features."
+          },
+          {
+            slideNumber: 5,
+            title: "AI Components & Tech Stack",
+            badgeText: "Technical Details",
+            bullets: [
+              `Detected Tech Stack: ${data.detected_tech.join(", ")}`,
+              "Frontend & UI: Next.js, React, Tailwind CSS",
+              "Backend & API: Node.js / Python FastAPI",
+              "Deployment: Vercel / Cloud Infrastructure"
+            ],
+            suggestedVisual: "Technology stack badges and architecture flowchart."
+          },
+          {
+            slideNumber: 6,
+            title: "System Flowchart & Workflow",
+            badgeText: "Architecture",
+            bullets: [
+              "Step 1: Input GitHub / Web URL → Parsing & Scrape",
+              "Step 2: AI Code Authenticity Scan & Feature Extraction",
+              "Step 3: Evaluator Assessment & Viva Question Mapping",
+              "Step 4: Slide-by-Slide PPT Generation & Export"
+            ],
+            suggestedVisual: "Vertical process flow cards with directional arrows."
+          },
+          {
+            slideNumber: 7,
+            title: "Future Scope & Upgrades",
+            badgeText: "Roadmap",
+            bullets: data.future_scope || [
+              "Integration with GitHub Classroom and Canvas LMS.",
+              "Multi-language code verification (Python, Java, C++).",
+              "Automated grading and analytics dashboard."
+            ],
+            suggestedVisual: "Roadmap timeline or pricing/tier subscription cards."
+          },
+          {
+            slideNumber: 8,
+            title: "Conclusion & Summary",
+            badgeText: "Conclusion",
+            bullets: [
+              `${projTitle} provides a smarter, faster, and more efficient approach.`,
+              "Reduces manual evaluation efforts and simplifies viva preparation.",
+              "Bridging the gap between raw codebases and academic slide decks."
+            ],
+            suggestedVisual: "Clean 'Thank You' card with repo link & developer contact."
+          }
+        ];
+
+        setPptSlides(generatedSlides);
       }
     } catch (err: any) {
       setError(err.message || "Something went wrong!");
@@ -87,6 +209,13 @@ export default function Home() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
+  };
+
+  const handleCopySlide = (slide: SlideContent, idx: number) => {
+    const text = `Slide ${slide.slideNumber}: ${slide.title}\n\nBullets:\n${slide.bullets.map(b => `- ${b}`).join("\n")}\n\nVisual Suggestion: ${slide.suggestedVisual}`;
+    navigator.clipboard.writeText(text);
+    setCopiedSlideIndex(idx);
+    setTimeout(() => setCopiedSlideIndex(null), 2000);
   };
 
   const handleDownloadPDF = () => {
@@ -106,7 +235,7 @@ export default function Home() {
             Verify code authenticity, AI ratio & full project architecture explanations.
           </p>
 
-          <div className="flex justify-center gap-2 pt-4">
+          <div className="flex flex-wrap justify-center gap-2 pt-4">
             <button
               onClick={() => setMode("single")}
               className={`px-5 py-2 rounded-lg text-sm font-medium transition ${
@@ -127,17 +256,27 @@ export default function Home() {
             >
               🎓 Teacher / Evaluator Mode
             </button>
+            <button
+              onClick={() => setMode("ppt")}
+              className={`px-5 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 ${
+                mode === "ppt"
+                  ? "bg-blue-600 text-white ring-2 ring-blue-500/50"
+                  : "bg-neutral-900 text-neutral-400 hover:bg-neutral-800"
+              }`}
+            >
+              📊 AI PPT Outline Mode
+            </button>
           </div>
         </div>
 
         {/* Form Section */}
         <form onSubmit={handleInspect} className="space-y-4 print:hidden">
-          {mode === "single" ? (
+          {mode === "single" || mode === "ppt" ? (
             <div className="flex flex-col md:flex-row gap-3">
               <input
                 type="url"
                 required
-                placeholder="Paste Live Web URL or GitHub Repo Link..."
+                placeholder={mode === "ppt" ? "Paste Live Web URL or GitHub Repo Link for PPT Outline..." : "Paste Live Web URL or GitHub Repo Link..."}
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 className="flex-1 bg-neutral-900 border border-neutral-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-indigo-500 transition"
@@ -145,9 +284,11 @@ export default function Home() {
               <button
                 type="submit"
                 disabled={loading}
-                className="bg-indigo-600 hover:bg-indigo-500 disabled:bg-neutral-800 px-6 py-3 rounded-lg font-medium transition"
+                className="bg-indigo-600 hover:bg-indigo-500 disabled:bg-neutral-800 px-6 py-3 rounded-lg font-medium transition whitespace-nowrap"
               >
-                {loading ? "Inspecting..." : "Inspect Code"}
+                {loading 
+                  ? (mode === "ppt" ? "Generating Slide Deck..." : "Inspecting...") 
+                  : (mode === "ppt" ? "Generate PPT Slides" : "Inspect Code")}
               </button>
             </div>
           ) : (
@@ -218,6 +359,76 @@ export default function Home() {
           </div>
         )}
 
+        {/* AI PPT Outline Mode Display */}
+        {mode === "ppt" && pptSlides && (
+          <div className="space-y-6 animate-fadeIn">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-neutral-900 border border-neutral-800 p-6 rounded-xl gap-4">
+              <div>
+                <span className="text-xs font-bold text-blue-400 uppercase tracking-wider bg-blue-950/60 border border-blue-800/40 px-3 py-1 rounded-full">
+                  AI Generated PPT Plan
+                </span>
+                <h2 className="text-2xl font-bold mt-2 text-white">
+                  8-Slide Presentation Outline
+                </h2>
+                <p className="text-xs text-neutral-400 mt-1">
+                  Ready-to-use slide titles, bullet points, and screenshot visual suggestions.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  const fullText = pptSlides.map(s => `SLIDE ${s.slideNumber}: ${s.title}\n${s.bullets.map(b => `- ${b}`).join('\n')}\nVisual Note: ${s.suggestedVisual}\n`).join('\n---\n\n');
+                  navigator.clipboard.writeText(fullText);
+                  alert("Full PPT Outline Copied!");
+                }}
+                className="bg-neutral-800 hover:bg-neutral-700 text-white border border-neutral-700 px-4 py-2 rounded-lg text-xs font-medium transition"
+              >
+                📋 Copy All Slides Text
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {pptSlides.map((slide, idx) => (
+                <div key={slide.slideNumber} className="bg-neutral-900 border border-neutral-800 rounded-xl p-5 flex flex-col justify-between space-y-4 relative">
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-[10px] font-bold bg-neutral-950 text-neutral-400 px-2.5 py-1 rounded border border-neutral-800">
+                        Slide {slide.slideNumber} of {pptSlides.length}
+                      </span>
+                      {slide.badgeText && (
+                        <span className="text-[10px] font-semibold text-blue-400 bg-blue-950/40 border border-blue-900/40 px-2 py-0.5 rounded-full">
+                          {slide.badgeText}
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="text-lg font-bold text-indigo-400 mb-1">{slide.title}</h3>
+                    {slide.subtitle && <p className="text-xs text-neutral-400 italic mb-3">{slide.subtitle}</p>}
+
+                    <ul className="space-y-1.5 list-disc list-inside text-xs text-neutral-200">
+                      {slide.bullets.map((b, bIdx) => (
+                        <li key={bIdx} className="leading-relaxed">{b}</li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="pt-3 border-t border-neutral-800/80 space-y-3">
+                    <div className="bg-neutral-950 p-2.5 rounded border border-neutral-800 text-[11px]">
+                      <span className="font-semibold text-indigo-300 block">🖼️ Visual Suggestion:</span>
+                      <p className="text-neutral-400 italic text-[11px] mt-0.5">{slide.suggestedVisual}</p>
+                    </div>
+
+                    <button
+                      onClick={() => handleCopySlide(slide, idx)}
+                      className="w-full bg-neutral-950 hover:bg-neutral-800 border border-neutral-800 text-xs text-neutral-300 py-1.5 rounded transition font-medium"
+                    >
+                      {copiedSlideIndex === idx ? "Copied Slide ✓" : `Copy Slide ${slide.slideNumber} Text`}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Single Inspection View */}
         {mode === "single" && result && (
           <div className="print-report-wrapper space-y-6">
@@ -262,7 +473,7 @@ export default function Home() {
                 <div className="bg-neutral-950 p-5 rounded-lg border border-indigo-900/50 space-y-2.5 print-card">
                   <div className="flex items-center justify-between border-b border-neutral-800 pb-2">
                     <h4 className="text-xs font-bold text-indigo-400 uppercase tracking-wider">
-                      🎓 Detailed Evaluator Assessment & Guidance
+                      🎓 Detailed Evaluator Assessment &amp; Guidance
                     </h4>
                     <span className="bg-indigo-950 text-indigo-300 border border-indigo-800 text-[10px] px-2.5 py-0.5 rounded-full font-semibold">
                       {result.teacher_evaluation.risk_level}
@@ -294,7 +505,7 @@ export default function Home() {
               {result.project_summary && (
                 <div className="bg-neutral-950 p-5 rounded-lg border border-neutral-800 space-y-3 print-card">
                   <h3 className="text-sm font-bold text-indigo-400 flex items-center gap-2">
-                    💡 Website Purpose & Full Explanation
+                    💡 Website Purpose &amp; Full Explanation
                   </h3>
                   <div>
                     <h4 className="text-[10px] font-semibold text-neutral-400 uppercase">PROJECT PURPOSE:</h4>
@@ -333,7 +544,7 @@ export default function Home() {
               {result.future_scope && (
                 <div className="bg-neutral-950 p-5 rounded-lg border border-neutral-800 space-y-2 print-card">
                   <h3 className="text-xs font-bold text-indigo-400 uppercase tracking-wider">
-                    🚀 Future Scope & Commercial Use-Cases
+                    🚀 Future Scope &amp; Commercial Use-Cases
                   </h3>
                   <ul className="list-disc list-inside space-y-1 text-xs text-neutral-300">
                     {result.future_scope.map((scope, idx) => (
